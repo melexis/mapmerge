@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lot xmlns="http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot.xsd"
+     name="{{ lot.name }}" item="{{ lot.item }}" wafersInLot="{{ lot.wafersInLot }}" organization="{{ lot.organization }}" probelocation="{{ lot.probelocation }}" subcontractor="{{ lot.subcontractor }}">
+  <configuration-parameters>
+  {% for k,v in lot.config.iteritems() %}
+    <parameter key="{{ k }}" value="{{ v }}" />
+  {% endfor %}
+  </configuration-parameters>
+  {% for wafer in lot.wafers %}
+  <wafer number="{{ wafer.number }}" passdies="{{ wafer.passdies }}">
+    <wafer-properties>
+    {% for k,v in wafer.config.iteritems() %}
+      <parameter key="{{ k }}" value="{{ v }}" />
+    {% endfor %}
+    </wafer-properties>
+    <wafermaps>
+    {% for wafermap in wafer.wafermaps %}
+      <wafermap name="{{ wafermap.name }}">
+      {% for name,format in wafermap.formats.iteritems() %}
+        <formats>
+          <format name="{{ name }}" encoding="{{ format.encoding }}">
+            {{ format.wafermap }}
+          </format>
+        </formats>
+      {% endfor %}
+      </wafermap>
+    {% endfor %}
+    </wafermaps>
+  </wafer>
+  {% endfor %}
+</lot>

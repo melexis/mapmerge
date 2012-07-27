@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lot xmlns="http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot.xsd"
+     name="A12345" item="201210600" wafersInLot="2" organization="IEPER" probelocation="IEPER" subcontractor="MLX_BOGUS">
+  <configuration-parameters>
+  
+    <parameter key="val1" value="blub" />
+  
+  </configuration-parameters>
+  
+  <wafer number="1" passdies="100">
+    <wafer-properties>
+    
+    </wafer-properties>
+    <wafermaps>
+    
+      <wafermap name="blaat">
+      
+        <formats>
+          <format name="TH01" encoding="base64">
+            aGVsbG8gd29ybGQ=
+          </format>
+        </formats>
+      
+      </wafermap>
+    
+    </wafermaps>
+  </wafer>
+  
+  <wafer number="2" passdies="200">
+    <wafer-properties>
+    
+    </wafer-properties>
+    <wafermaps>
+    
+      <wafermap name="blubber">
+      
+        <formats>
+          <format name="TH01" encoding="base64">
+            a3J1c3R5
+          </format>
+        </formats>
+      
+      </wafermap>
+    
+    </wafermaps>
+  </wafer>
+  
+</lot>
