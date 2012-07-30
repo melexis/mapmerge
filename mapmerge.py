@@ -91,7 +91,7 @@ class MessageListener:
     
     response = encode(lot)
     # send the result back
-    self.conn.send(response, destination='/queue/response')
+    self.conn.send(response, destination='/topic/postprocessing.mapmerge.out')
     
     
 def listen(hostname, port):
@@ -101,8 +101,7 @@ def listen(hostname, port):
     conn.start()
     conn.connect()
 
-    conn.subscribe(destination='/queue/request', ack='auto')
-
+    conn.subscribe(destination='/queue/postprocessing.mapmerge.erfurt.in', ack='auto')
     conn.disconnect()
 
 def usage():
