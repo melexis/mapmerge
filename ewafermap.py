@@ -58,18 +58,25 @@ class LotHandler(handler.ContentHandler):
 
     def __init__(self):
         self.inLot = False
+        self.inConfig = False
         self.inWafer = False
         self.inWaferProperties = False
         self.inWafermaps = False
         self.inWafermap = False
         self.inFormats = False
         self.inFormat = False
+        self.lotconfig = {}
 
     def startElement(self, name, attrs):
         if name == 'lot':
             self.inLot = True
             self.la = dict(attrs)
             self.wafers = []
+        elif name == 'configuration-parameters':
+            self.inConfig = True
+            self.lotconfig = {}
+        elif name == 'parameter' and self.inConfig == True:
+            self.lotconfig[attrs.get('key')] = attrs.get('value')
         elif name == 'wafer':
             self.inWafer = True
             self.wa = dict(attrs)
@@ -97,7 +104,9 @@ class LotHandler(handler.ContentHandler):
     def endElement(self, name):
         if name == 'lot':
             self.inLot = False
-            self.lot = Lot(self.la.get("name"), self.la.get('item'), self.la.get('wafersInLot'), self.la.get('organization'), self.la.get('probelocation'), self.la.get('subcontractor'), self.wafers)
+            self.lot = Lot(self.la.get("name"), self.la.get('item'), self.la.get('wafersInLot'), self.la.get('organization'), self.la.get('probelocation'), self.la.get('subcontractor'), self.wafers, self.lotconfig)
+        elif name == 'configuration-parameters':
+            self.inConfig = False
         elif name == 'wafer':
             self.inWafer = False
             self.wafers.append(Wafer(self.wa.get("number"), self.wa.get("passdies"), self.wafermaps, self.waferProperties))
@@ -133,6 +142,8 @@ def decode(body):
      u'M31265'
      >>> l.wafersInLot
      u'4'
+     >>> l.config['config']
+     u'test'
      >>> l.wafers[0].config
      {u'buildAt': u'20120302T11:53', u'origin': u'MapMerge', u'site': u'erfurt', u'processStep': u'pactech'}
   """

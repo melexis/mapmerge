@@ -3,6 +3,9 @@
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot.xsd"
      name="M31265" wafersInLot="4">
+    <configuration-parameters>
+        <parameter key="config" value="test"/>
+    </configuration-parameters>
     <wafer number="13" passdies="3730">
         <wafer-properties>
             <parameter key="processStep" value="pactech"/>

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import with_statement
 
 import base64
 import os
@@ -18,7 +19,7 @@ def save_wafermap_formats_to_dir(wafermaps, d):
   """
   for (name, wafermap) in wafermaps:
     with open(d + '/' + name, 'wb') as f:
-      decoded = base64.b64decode(wf.wafermap)
+      decoded = base64.b64decode(wafermap)
       f.write(decoded)
 
 def th01_wafermaps_generator(wafer):
@@ -26,9 +27,22 @@ def th01_wafermaps_generator(wafer):
   for wm in wafer.wafermaps:
     fm = wm.formats['TH01']
     yield (wm.name, fm.decode())
+
+class MapMergeException(BaseException):
+
+  def __init__(self, errcode, stdout, stderr):
+    self.errcode = errcode
+    self.stdout = stdout
+    self.stderr = stderr
+
+  def __repr__(self):
+     return """Got return code different then 0:  %d
+                 stdout: %s
+                 stderr: %s""" % (self.errcode, self.stdout, self.stderr)
     
 def mapmerge(wafer):
   """Call mapmerge for a given wafermap.  Save the result of mapmerge in a new wafermap."""
+  print "Got wafer %s" % wafer
   # create the temporary directoy for the input wafermaps
   ind = mkdtemp(suffix='input')
   outd = mkdtemp(suffix='output')
@@ -40,6 +54,8 @@ def mapmerge(wafer):
   # save all selected wafermaps in the in directory
   save_wafermap_formats_to_dir(wafermaps, ind)
 
+  child = None
+
   try:
     # spawn a new subprocess for mapmerge
     child = subprocess.Popen([
@@ -50,8 +66,8 @@ def mapmerge(wafer):
         "localFolder=%s" % ind,
         "DestinationDir=%s" % outd
         ], 
-                             stdout=subprocess.PIPE, 
-                             stderr=subprocess.PIPE)
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.PIPE)
 
     # block until the command is completed
     child.wait()
@@ -60,12 +76,12 @@ def mapmerge(wafer):
     if child.returncode != 0:
         stdout = child.stdout.read()
         stderr = child.stderr.read()
-        raise """Got return code different then 0:  %d
-                 stdout: %s
-                 stderr: %s""" % (child.returncode, stdout, stderr)
+        raise MapMergeException(child.returncode, stdout, stderr)
+
   finally:
-    child.stdout.close()
-    child.stderr.close()
+    if child != None:
+      child.stdout.close()
+      child.stderr.close()
 
   # check for generated wafermaps in the out directory
   files = [ind + '/' + f for f in os.listdir(ind)]
@@ -85,9 +101,13 @@ class MessageListener:
 
   def on_message(self, headers, message):
     lot = decode(message)
-    
+    print "Got lot %s" % lot
+
     # perform mapmerge on each wafer
-    eachWafer(lot, mapmerge)
+    try:
+      eachWafer(lot, mapmerge)
+    except BaseException, e: 
+      self.conn.send(e.__repr__(), destination='/topic/exceptions.postprocessing')
     
     response = encode(lot)
     # send the result back
@@ -95,14 +115,19 @@ class MessageListener:
     
     
 def listen(hostname, port):
-  while True:
+  conn = None
+  try: 
     conn = stomp.Connection([(hostname, port)])
     conn.set_listener('', MessageListener(conn))
     conn.start()
     conn.connect()
-
     conn.subscribe(destination='/queue/postprocessing.mapmerge.erfurt.in', ack='auto')
-    conn.disconnect()
+
+    import time
+    while True: time.sleep(1000)
+  finally: 
+    if conn != None:    
+      conn.disconnect()
 
 def usage():
   print("Usage:  %s <<hostname>> <<port>>" % sys.argv[0])
@@ -115,4 +140,6 @@ def main():
     listen(hostname, int(port))
 
 if __name__ == '__main__':
+  import logging
+  logging.basicConfig()
   main()
