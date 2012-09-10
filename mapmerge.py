@@ -42,12 +42,10 @@ class MapMergeException(BaseException):
     
 def mapmerge(wafer):
   """Call mapmerge for a given wafermap.  Save the result of mapmerge in a new wafermap."""
-  print "Got wafer %s" % wafer
   # create the temporary directoy for the input wafermaps
   ind = mkdtemp(suffix='input')
   outd = mkdtemp(suffix='output')
 
-    
   # select all th0x wafermaps to save in the in directory
   wafermaps = th01_wafermaps_generator(wafer)
 
@@ -101,8 +99,7 @@ class MessageListener:
 
   def on_message(self, headers, message):
     lot = decode(message)
-    print "Got lot %s" % lot
-
+    
     # perform mapmerge on each wafer
     try:
       eachWafer(lot, mapmerge)
