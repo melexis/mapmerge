@@ -106,7 +106,7 @@ def mapmerge(lot, wafer):
       child.stderr.close()
 
   # check for generated wafermaps in the out directory
-  files = [ind + '/' + f for f in os.listdir(ind)]
+  files = [outd + '/' + f for f in os.listdir(outd)]
 
   logging.debug("Found the following files in the output directory %s" % files)
   
