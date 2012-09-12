@@ -7,6 +7,7 @@ import os
 import subprocess
 import stomp
 import sys
+import uuid
 
 from ewafermap import *
 from tempfile import mkdtemp
@@ -16,11 +17,11 @@ MAPMERGE = '/usr/share/ink-tool/bin/inkless'
 def save_wafermap_formats_to_dir(wafermaps, d):
   """Save a wafermap in the given directory.
 
-     Wafermaps is a tuple containing the name of the wafermap and the base64 encoded wafermap.
+     Wafermaps is a list of tuples containing the name of the wafermap and the wafermap
   """
   logging.info("Saving the wafermaps to directory %s" % d)
-  for (name, wafermap) in wafermaps:
-    filename = d + '/' + name
+  for wafermap in wafermaps:
+    filename = d + '/' + uuid.uuid1().hex
     with open(filename, 'wb') as f:
       logging.debug("Saving wafermap to file %s" % filename)
       f.write(wafermap)
@@ -28,24 +29,24 @@ def save_wafermap_formats_to_dir(wafermaps, d):
       f.close()
 
 def th01_wafermaps_generator(wafer):
-  """Generator that selects all th01 wafermaps from a given wafer
+  """Generator that selects all th01 wafermaps from a given wafername
 
      First create a wafer object containing a list of wafermaps.
      >>> wm1 = Wafermap('wafermap1', {'TH01': 'test'})
      >>> wm2 = Wafermap('wafermap2', {'TH01': 'blub', 'amkor': 'blubber'})
-     >>> w = Wafer(1, 100, {'wafermap1': wm1, 'wafermap2': wm2})
+     >>> w = Wafer(1, 100, [wm1, wm2])
 
      Now we can iterator all th01 wafermaps for a wafer by calling the th01_wafermaps_generator
      >>> [(name, wmap) for name, wmap in th01_wafermaps_generator(w)]
      [('wafermap1', u'test'), ('wafermap2', u'blub')]
   """
   logging.info('Creating a generator for all TH01 wafermaps in the wafer')
-  for name, wafermap in wafer.wafermaps.items():
-      logging.debug("Generating TH01 wafermaps for wafermap %s" % name)
+  for wafermap in wafer.wafermaps:
+      logging.debug("Generating TH01 wafermaps for wafermap %s" % wafermap.name)
       if wafermap.formats.has_key('TH01'):
           logging.debug('Found a TH01 format in the wafermap')
           wformat = wafermap.formats['TH01']
-          yield (name, wformat.decode())
+          yield (wafermap.name, wformat.decode())
 
 class MapMergeException(BaseException):
 
@@ -113,7 +114,7 @@ def mapmerge(lot, wafer):
   for filename in files:
     f = open(filename, 'rb').read()
     wafermap = Wafermap(filename, {'TH01': Format('base64', base64.b64encode(f))})
-    wafer.wafermaps['Postprocessing'] = wafermap
+    wafer.wafermaps.append(wafermap)
 
 class MessageListener:
 

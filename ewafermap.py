@@ -88,7 +88,7 @@ class LotHandler(handler.ContentHandler):
             self.waferProperties[attrs.get('key')] = attrs.get('value')
         elif name == 'wafermaps':
             self.inWafermaps = True
-            self.wafermaps = {}
+            self.wafermaps = []
         elif name == 'wafermap':
             self.inWafermap = True
             self.wafermapName = attrs.get('name')
@@ -116,7 +116,7 @@ class LotHandler(handler.ContentHandler):
             self.inWafermaps = False
         elif name == 'wafermap':
             self.inWafermap = False
-            self.wafermaps[self.wafermapName] = Wafermap(self.wafermapName, self.formats)
+            self.wafermaps.append(Wafermap(self.wafermapName, self.formats))
         elif name == 'formats':
             self.inFormats = False
         elif name == 'format':
@@ -146,7 +146,7 @@ def decode(body):
      u'test'
      >>> l.wafers[0].config
      {u'buildAt': u'20120302T11:53', u'origin': u'MapMerge', u'site': u'erfurt', u'processStep': u'pactech'}
-     >>> l.wafers[0].wafermaps['dummy'].formats['TH01'].decode()[:4]
+     >>> l.wafers[0].wafermaps[0].formats['TH01'].decode()[:4]
      'WMAP'
   """
   handler = LotHandler()
