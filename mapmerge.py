@@ -113,7 +113,7 @@ def mapmerge(lot, wafer):
   
   for filename in files:
     f = open(filename, 'rb').read()
-    wafermap = Wafermap(filename, {'TH01': Format('base64', base64.b64encode(f))})
+    wafermap = Wafermap('Postprocessing', {'TH01': Format('base64', base64.b64encode(f))})
     wafer.wafermaps.append(wafermap)
 
 class MessageListener:
