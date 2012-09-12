@@ -146,6 +146,8 @@ def decode(body):
      u'test'
      >>> l.wafers[0].config
      {u'buildAt': u'20120302T11:53', u'origin': u'MapMerge', u'site': u'erfurt', u'processStep': u'pactech'}
+     >>> l.wafers[0].wafermaps['dummy'].formats['TH01'].decode()[:4]
+     'WMAP'
   """
   handler = LotHandler()
   parseString(body, handler)
@@ -175,7 +177,7 @@ def encode(lot):
 def eachWafer(l, f):
   """Iterate each wafer in a lot and call f on the wafer
 
-     F is a function that takes one parameter ( Wafer )
+     F is a function that takes two parameters ( Lot, Wafer )
 
      Example:
      
@@ -184,13 +186,13 @@ def eachWafer(l, f):
 
      When we call eachWafer with the lot the function should be executed on both wafers.
      Create a real function as lambda is limited.
-     >>> def printNumber(w): print w.number
+     >>> def printNumber(l, w): print w.number
      >>> eachWafer(l, printNumber)
      1
      2
   """
   for w in l.wafers:
-      f(w)
+      f(l, w)
 
 def eachWafermap(l, f):
   """Iterate each wafermap in a lot and call f on the wafermap
@@ -212,7 +214,7 @@ def eachWafermap(l, f):
      test2
      blubber
   """
-  def _iterateWafermap(w): 
+  def _iterateWafermap(l, w): 
     for wm in w.wafermaps:
       f(w, wm)
   eachWafer(l, _iterateWafermap)

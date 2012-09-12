@@ -23,8 +23,7 @@ def save_wafermap_formats_to_dir(wafermaps, d):
     filename = d + '/' + name
     with open(filename, 'wb') as f:
       logging.debug("Saving wafermap to file %s" % filename)
-      decoded = base64.b64decode(wafermap)
-      f.write(decoded)
+      f.write(wafermap)
       f.flush()
       f.close()
 
@@ -60,7 +59,7 @@ class MapMergeException(BaseException):
                  stdout: %s
                  stderr: %s""" % (self.errcode, self.stdout, self.stderr)
     
-def mapmerge(wafer):
+def mapmerge(lot, wafer):
   """Call mapmerge for a given wafermap.  Save the result of mapmerge in a new wafermap."""
   # create the temporary directoy for the input wafermaps
   ind = mkdtemp(suffix='input')
@@ -80,7 +79,8 @@ def mapmerge(wafer):
     logging.debug('Creating a subprocess for mapmerge')
     # spawn a new subprocess for mapmerge
     child = subprocess.Popen([
-        MAPMERGE, 
+        MAPMERGE,
+        "lot=%s" % lot.name, 
         "wafer=%d" % int(wafer.number), 
         "ProcessStep=%s" % wafer.config['processStep'],
         "noDB",

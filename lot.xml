@@ -16,8 +16,8 @@
     {% endfor %}
     </wafer-properties>
     <wafermaps>
-    {% for name,wafermap in wafer.wafermaps.iteritems() %}
-      <wafermap name="{{ name }}">
+    {% for wafermap in wafer.wafermaps %}
+      <wafermap name="{{ wafermap.name }}">
       {% for name,format in wafermap.formats.iteritems() %}
         <formats>
           <format name="{{ name }}" encoding="{{ format.encoding }}">
