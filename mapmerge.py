@@ -20,7 +20,7 @@ def save_wafermap_formats_to_dir(wafermaps, d):
      Wafermaps is a list of tuples containing the name of the wafermap and the wafermap
   """
   logging.info("Saving the wafermaps to directory %s" % d)
-  for wafermap in wafermaps:
+  for name, wafermap in wafermaps:
     filename = d + '/' + uuid.uuid1().hex
     with open(filename, 'wb') as f:
       logging.debug("Saving wafermap to file %s" % filename)
