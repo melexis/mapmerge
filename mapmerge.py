@@ -130,14 +130,12 @@ class MessageListener:
     # perform mapmerge on each wafer
     try:
       eachWafer(lot, mapmerge)
+      logging.debug("Sending a lot %s" % lot)
+      response = encode(lot)
+      # send the result back
+      self.conn.send(response, destination='/topic/postprocessing.mapmerge.out')
     except BaseException, e: 
       self.conn.send(e.__repr__(), destination='/topic/exceptions.postprocessing')
-
-    logging.debug("Sending a lot %s" % lot)
-    response = encode(lot)
-    # send the result back
-    self.conn.send(response, destination='/topic/postprocessing.mapmerge.out')
-    
     
 def listen(hostname, port):
   conn = None
