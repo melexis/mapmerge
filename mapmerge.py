@@ -2,6 +2,7 @@
 from __future__ import with_statement
 
 import base64
+import logging
 import os
 import subprocess
 import stomp
@@ -17,16 +18,35 @@ def save_wafermap_formats_to_dir(wafermaps, d):
 
      Wafermaps is a tuple containing the name of the wafermap and the base64 encoded wafermap.
   """
+  logging.info("Saving the wafermaps to directory %s" % d)
   for (name, wafermap) in wafermaps:
-    with open(d + '/' + name, 'wb') as f:
+    filename = d + '/' + name
+    with open(filename, 'wb') as f:
+      logging.debug("Saving wafermap to file %s" % filename)
       decoded = base64.b64decode(wafermap)
       f.write(decoded)
+      f.flush()
+      f.close()
 
 def th01_wafermaps_generator(wafer):
-  """Generator that selects all th01 wafermaps from a given wafer"""
-  for wm in wafer.wafermaps:
-    fm = wm.formats['TH01']
-    yield (wm.name, fm.decode())
+  """Generator that selects all th01 wafermaps from a given wafer
+
+     First create a wafer object containing a list of wafermaps.
+     >>> wm1 = Wafermap('wafermap1', {'TH01': 'test'})
+     >>> wm2 = Wafermap('wafermap2', {'TH01': 'blub', 'amkor': 'blubber'})
+     >>> w = Wafer(1, 100, {'wafermap1': wm1, 'wafermap2': wm2})
+
+     Now we can iterator all th01 wafermaps for a wafer by calling the th01_wafermaps_generator
+     >>> [(name, wmap) for name, wmap in th01_wafermaps_generator(w)]
+     [('wafermap1', u'test'), ('wafermap2', u'blub')]
+  """
+  logging.info('Creating a generator for all TH01 wafermaps in the wafer')
+  for name, wafermap in wafer.wafermaps.items():
+      logging.debug("Generating TH01 wafermaps for wafermap %s" % name)
+      if wafermap.formats.has_key('TH01'):
+          logging.debug('Found a TH01 format in the wafermap')
+          wformat = wafermap.formats['TH01']
+          yield (name, wformat.decode())
 
 class MapMergeException(BaseException):
 
@@ -46,6 +66,8 @@ def mapmerge(wafer):
   ind = mkdtemp(suffix='input')
   outd = mkdtemp(suffix='output')
 
+  logging.debug("Created temporary directories %s for input and %s for output" % (ind, outd))
+
   # select all th0x wafermaps to save in the in directory
   wafermaps = th01_wafermaps_generator(wafer)
 
@@ -55,11 +77,12 @@ def mapmerge(wafer):
   child = None
 
   try:
+    logging.debug('Creating a subprocess for mapmerge')
     # spawn a new subprocess for mapmerge
     child = subprocess.Popen([
         MAPMERGE, 
-        "wafer=%d" % wafer.number, 
-        "ProcessStep=%s" % wafer.config['ProcessStep'],
+        "wafer=%d" % int(wafer.number), 
+        "ProcessStep=%s" % wafer.config['processStep'],
         "noDB",
         "localFolder=%s" % ind,
         "DestinationDir=%s" % outd
@@ -72,9 +95,10 @@ def mapmerge(wafer):
 
     # trigger an exception when the returncode isn't 0
     if child.returncode != 0:
-        stdout = child.stdout.read()
-        stderr = child.stderr.read()
-        raise MapMergeException(child.returncode, stdout, stderr)
+      logging.warning("Mapmerge returned with exist code %d" % child.returncode)
+      stdout = child.stdout.read()
+      stderr = child.stderr.read()
+      raise MapMergeException(child.returncode, stdout, stderr)
 
   finally:
     if child != None:
@@ -84,6 +108,8 @@ def mapmerge(wafer):
   # check for generated wafermaps in the out directory
   files = [ind + '/' + f for f in os.listdir(ind)]
 
+  logging.debug("Found the following files in the output directory %s" % files)
+  
   for filename in files:
     f = open(filename, 'rb').read()
     wafermap = Wafermap(filename, {'TH01': Format('base64', base64.b64encode(f))})
@@ -99,13 +125,15 @@ class MessageListener:
 
   def on_message(self, headers, message):
     lot = decode(message)
-    
+    logging.debug("Received a lot %s" % lot)
+
     # perform mapmerge on each wafer
     try:
       eachWafer(lot, mapmerge)
     except BaseException, e: 
       self.conn.send(e.__repr__(), destination='/topic/exceptions.postprocessing')
-    
+
+    logging.debug("Sending a lot %s" % lot)
     response = encode(lot)
     # send the result back
     self.conn.send(response, destination='/topic/postprocessing.mapmerge.out')
@@ -130,13 +158,16 @@ def usage():
   print("Usage:  %s <<hostname>> <<port>>" % sys.argv[0])
 
 def main():
-  if len(sys.argv) != 3:
+  if len(sys.argv) == 2 and sys.argv[1] == 'test':
+    import doctest
+    doctest.testmod()
+  elif len(sys.argv) != 3:
     usage()
   else:
     [program, hostname, port] = sys.argv
+    logging.debug("Starting mapmerge for esb %s and port %d" % (hostname, int(port)))
     listen(hostname, int(port))
 
 if __name__ == '__main__':
-  import logging
-  logging.basicConfig()
+  logging.basicConfig(level=logging.DEBUG)
   main()
