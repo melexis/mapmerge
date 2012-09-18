@@ -6,7 +6,7 @@ Mapmerge integration for electronic wafermapping
 #### install stdeb ####
 To be able to build deb files from python packages install stdeb ( you can also install with pip or easy_install ).
 
-  git clone https://github.com/astraw/stdeb.git
+  git clone https://github.com/bhoflack/stdeb.git
   cd stdeb && sudo python setup.py install
 
 #### building the deb file ####
