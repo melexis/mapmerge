@@ -1,0 +1,11 @@
+from setuptools import setup, find_packages
+
+setup(
+    name='mapmerge',
+    description='electronic wafermap processor for mapmerge',
+    version='1.0.0',
+    long_description=__doc__,
+    packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
+    zip_safe=False,
+    install_requires=['jinja2', 'stomp.py']
+)
