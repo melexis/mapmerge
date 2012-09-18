@@ -81,9 +81,9 @@ class LotHandler(handler.ContentHandler):
             self.inWafer = True
             self.wa = dict(attrs)
             self.wafermaps = []
+            self.waferProperties = {}
         elif name == 'wafer-properties':
             self.inWaferProperties = True
-            self.waferProperties = {}
         elif self.inWaferProperties and name == 'parameter':
             self.waferProperties[attrs.get('key')] = attrs.get('value')
         elif name == 'wafermaps':
