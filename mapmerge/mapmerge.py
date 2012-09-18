@@ -83,7 +83,7 @@ def mapmerge(lot, wafer):
         MAPMERGE,
         "lot=%s" % lot.name, 
         "wafer=%d" % int(wafer.number), 
-        "ProcessStep=%s" % wafer.config['processStep'],
+        "ProcessStep=%s" % lot.config['processStep'],
         "noDB",
         "localFolder=%s" % ind,
         "DestinationDir=%s" % outd
