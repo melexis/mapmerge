@@ -8,9 +8,11 @@ import subprocess
 import stomp
 import sys
 import uuid
+import requests
 
 from ewafermap import *
 from tempfile import mkdtemp
+from config import WMDS_WEBSERVICE
 
 MAPMERGE = '/usr/share/ink-tool/bin/inkless'
 
@@ -32,21 +34,33 @@ def th01_wafermaps_generator(wafer):
   """Generator that selects all th01 wafermaps from a given wafername
 
      First create a wafer object containing a list of wafermaps.
-     >>> wm1 = Wafermap('wafermap1', {'TH01': 'test'})
-     >>> wm2 = Wafermap('wafermap2', {'TH01': 'blub', 'amkor': 'blubber'})
+     >>> wm1 = Wafermap('wafermap1', {'TH01': Format('raw','c3fe9bd4777d868cea2dd79ebfe569cc6bcbed02')})
+     >>> wm2 = Wafermap('wafermap2', {'TH01': Format('raw','716c6b31cc6f3be514269de58c4097da89abdcdc'), 'amkor': 'blubber'})
      >>> w = Wafer(1, 100, [wm1, wm2])
 
      Now we can iterator all th01 wafermaps for a wafer by calling the th01_wafermaps_generator
-     >>> [(name, wmap) for name, wmap in th01_wafermaps_generator(w)]
-     [('wafermap1', u'test'), ('wafermap2', u'blub')]
+     >>> [(name, ref) for name, ref in th01_wafermaps_generator(w)]
+     [('wafermap1', 'c3fe9bd4777d868cea2dd79ebfe569cc6bcbed02'), ('wafermap2', '716c6b31cc6f3be514269de58c4097da89abdcdc')]
   """
   logging.info('Creating a generator for all TH01 wafermaps in the wafer')
   for wafermap in wafer.wafermaps:
       logging.debug("Generating TH01 wafermaps for wafermap %s" % wafermap.name)
       if wafermap.formats.has_key('TH01'):
-          logging.debug('Found a TH01 format in the wafermap')
-          wformat = wafermap.formats['TH01']
-          yield (wafermap.name, wformat.decode())
+          logging.debug('Found a TH01 key in the wafermap')
+          wkey = wafermap.formats['TH01']
+          yield (wafermap.name, wkey.wafermap)
+          
+
+def th01_reference_to_map_generator(references):
+  """Generator that fetches the th01 wafermaps for a list containing the name and reference
+
+     >>> [(name, wmap[:4]) for name, wmap in th01_reference_to_map_generator([('test', '716c6b31cc6f3be514269de58c4097da89abdcdc')])]
+     [('test', u'WMAP')]"""
+  for name,ref in references:
+    r = requests.get(WMDS_WEBSERVICE + ref)
+    if r.status_code > 300:
+        raise BaseException("Wafermap with key %s was not found in the datastore" % ref)
+    yield (name, r.text)
 
 class MapMergeException(BaseException):
 
@@ -69,7 +83,7 @@ def mapmerge(lot, wafer):
   logging.debug("Created temporary directories %s for input and %s for output" % (ind, outd))
 
   # select all th0x wafermaps to save in the in directory
-  wafermaps = th01_wafermaps_generator(wafer)
+  wafermaps = th01_reference_to_map_generator(th01_wafermaps_generator(wafer))
 
   # save all selected wafermaps in the in directory
   save_wafermap_formats_to_dir(wafermaps, ind)
