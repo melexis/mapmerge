@@ -34,8 +34,8 @@ def th01_wafermaps_generator(wafer):
   """Generator that selects all th01 wafermaps from a given wafername
 
      First create a wafer object containing a list of wafermaps.
-     >>> wm1 = Wafermap('wafermap1', {'TH01': Format('raw','c3fe9bd4777d868cea2dd79ebfe569cc6bcbed02')})
-     >>> wm2 = Wafermap('wafermap2', {'TH01': Format('raw','716c6b31cc6f3be514269de58c4097da89abdcdc'), 'amkor': 'blubber'})
+     >>> wm1 = Wafermap('wafermap1', {'th01': Format('raw','c3fe9bd4777d868cea2dd79ebfe569cc6bcbed02')})
+     >>> wm2 = Wafermap('wafermap2', {'th01': Format('raw','716c6b31cc6f3be514269de58c4097da89abdcdc'), 'amkor': 'blubber'})
      >>> w = Wafer(1, 100, [wm1, wm2])
 
      Now we can iterator all th01 wafermaps for a wafer by calling the th01_wafermaps_generator
@@ -45,9 +45,9 @@ def th01_wafermaps_generator(wafer):
   logging.info('Creating a generator for all TH01 wafermaps in the wafer')
   for wafermap in wafer.wafermaps:
       logging.debug("Generating TH01 wafermaps for wafermap %s" % wafermap.name)
-      if wafermap.formats.has_key('TH01'):
+      if wafermap.formats.has_key('th01'):
           logging.debug('Found a TH01 key in the wafermap')
-          wkey = wafermap.formats['TH01']
+          wkey = wafermap.formats['th01']
           yield (wafermap.name, wkey.wafermap)
           
 

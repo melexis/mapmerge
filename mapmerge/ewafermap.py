@@ -97,7 +97,7 @@ class LotHandler(handler.ContentHandler):
             self.formats = {}
         elif name == 'format':
             self.inFormat = True
-            self.formatName = attrs.get('name')
+            self.formatName = attrs.get('name').lower()
             self.formatEncoding = attrs.get('encoding')
             self.formatContent = ""
 
