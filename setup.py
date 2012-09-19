@@ -7,6 +7,6 @@ setup(
     long_description=__doc__,
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests", '*send_job.py', '*stomptest.py']),
     zip_safe=False,
-    install_requires=['jinja2', 'stomp.py'],
-    scripts=['mapmerge.py']
+    install_requires=[],
+    scripts=['python-mapmerge']
 )
