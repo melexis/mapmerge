@@ -10,7 +10,7 @@ def get(url, headers={}):
   for k,v in headers.iteritems():
     request.add_header(k,v)
   resp = opener.open(request)
-  return Response(resp.getcode(), resp.read())
+  return Response(resp.code, resp.read())
 
 def put(url, headers={}, data=''):
   opener = urllib2.build_opener(urllib2.HTTPHandler)
@@ -19,11 +19,14 @@ def put(url, headers={}, data=''):
   for k,v in headers.iteritems():
     request.add_header(k,v)
   resp = opener.open(request)
-  return Response(resp.getcode(), resp.read())
+  return Response(resp.code, resp.read())
 
 class Response:
 
   def __init__(self, status_code, text):
     self.status_code = status_code
     self.text = text
+
+  def __repr__(self):
+    return "%d - %s" % (self.status_code, self.text)
   
