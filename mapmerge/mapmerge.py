@@ -9,6 +9,7 @@ import stomp
 import sys
 import uuid
 import http as requests
+import shutil
 
 from ewafermap import *
 from tempfile import mkdtemp
