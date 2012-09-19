@@ -77,23 +77,24 @@ class MapMergeException(BaseException):
 def mapmerge(lot, wafer):
   """Call mapmerge for a given wafermap.  Save the result of mapmerge in a new wafermap."""
   # create the temporary directoy for the input wafermaps
-  ind = mkdtemp(suffix='input')
-  outd = mkdtemp(suffix='output')
-
-  logging.debug("Created temporary directories %s for input and %s for output" % (ind, outd))
-
-  # select all th0x wafermaps to save in the in directory
-  wafermaps = th01_reference_to_map_generator(th01_wafermaps_generator(wafer))
-
-  # save all selected wafermaps in the in directory
-  save_wafermap_formats_to_dir(wafermaps, ind)
-
-  child = None
-
   try:
-    logging.debug('Creating a subprocess for mapmerge')
-    # spawn a new subprocess for mapmerge
-    child = subprocess.Popen([
+    ind = mkdtemp(suffix='input')
+    outd = mkdtemp(suffix='output')
+
+    logging.debug("Created temporary directories %s for input and %s for output" % (ind, outd))
+
+    # select all th0x wafermaps to save in the in directory
+    wafermaps = th01_reference_to_map_generator(th01_wafermaps_generator(wafer))
+
+    # save all selected wafermaps in the in directory
+    save_wafermap_formats_to_dir(wafermaps, ind)
+
+    child = None
+
+    try:
+      logging.debug('Creating a subprocess for mapmerge')
+      # spawn a new subprocess for mapmerge
+      child = subprocess.Popen([
         MAPMERGE,
         "lot=%s" % lot.name, 
         "wafer=%d" % int(wafer.number), 
@@ -105,30 +106,36 @@ def mapmerge(lot, wafer):
         stdout=subprocess.PIPE, 
         stderr=subprocess.PIPE)
 
-    # block until the command is completed
-    child.wait()
+      # block until the command is completed
+      child.wait()
 
-    # trigger an exception when the returncode isn't 0
-    if child.returncode != 0:
-      logging.warning("Mapmerge returned with exist code %d" % child.returncode)
-      stdout = child.stdout.read()
-      stderr = child.stderr.read()
-      raise MapMergeException(child.returncode, stdout, stderr)
+      # trigger an exception when the returncode isn't 0
+      if child.returncode != 0:
+        logging.warning("Mapmerge returned with exist code %d" % child.returncode)
+        stdout = child.stdout.read()
+        stderr = child.stderr.read()
+        raise MapMergeException(child.returncode, stdout, stderr)
+
+    finally:
+      if child != None:
+        child.stdout.close()
+        child.stderr.close()
+
+    # check for generated wafermaps in the out directory
+    files = [outd + '/' + f for f in os.listdir(outd)]
+
+    logging.debug("Found the following files in the output directory %s" % files)
+    
+    for filename in files:
+      with open(filename, 'rb') as f:
+        contents = f.read()
+        wafermap = Wafermap('Postprocessing', {'th01': Format('base64', base64.b64encode(contents))})
+        wafer.wafermaps.append(wafermap)
 
   finally:
-    if child != None:
-      child.stdout.close()
-      child.stderr.close()
-
-  # check for generated wafermaps in the out directory
-  files = [outd + '/' + f for f in os.listdir(outd)]
-
-  logging.debug("Found the following files in the output directory %s" % files)
-  
-  for filename in files:
-    f = open(filename, 'rb').read()
-    wafermap = Wafermap('Postprocessing', {'TH01': Format('base64', base64.b64encode(f))})
-    wafer.wafermaps.append(wafermap)
+    shutil.rmtree(ind, ignore_errors=True, onerror=None)
+    shutil.rmtree(outd, ignore_errors=True, onerror=None)
+    
 
 class MessageListener:
 
