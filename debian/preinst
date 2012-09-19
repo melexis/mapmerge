@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ -x /etc/init.d/python-mapmerge ]; then
+  echo "Shutting down previous version of python-mapmerge"
+  /etc/init.d/python-mapmerge stop
+fi

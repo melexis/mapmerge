@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ -x /etc/init.d/python-mapmerge ]; then
+  echo "Starting python-mapmerge" 
+  /etc/init.d/python-mapmerge start
+fi
