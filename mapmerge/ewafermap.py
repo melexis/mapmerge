@@ -146,19 +146,54 @@ def decode(body):
      u'test'
      >>> l.wafers[0].config
      {u'buildAt': u'20120302T11:53', u'origin': u'MapMerge', u'site': u'erfurt', u'processStep': u'pactech'}
-     >>> l.wafers[0].wafermaps[0].formats['TH01'].decode()[:4]
+     >>> l.wafers[0].wafermaps[0].formats['th01'].decode()[:4]
      'WMAP'
   """
   handler = LotHandler()
   parseString(body, handler)
   return handler.lot
 
+lot_template="""<?xml version="1.0" encoding="UTF-8"?>
+<lot xmlns="http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot http://cmdb.elex.be/products/electronic-wafermapping/schemas/lot.xsd"
+     name="{{ lot.name }}" item="{{ lot.item }}" wafersInLot="{{ lot.wafersInLot }}" organization="{{ lot.organization }}" probelocation="{{ lot.probelocation }}" subcontractor="{{ lot.subcontractor }}">
+  <configuration-parameters>
+  {% for k,v in lot.config.iteritems() %}
+    <parameter key="{{ k }}" value="{{ v }}" />
+  {% endfor %}
+  </configuration-parameters>
+  {% for wafer in lot.wafers %}
+  <wafer number="{{ wafer.number }}" passdies="{{ wafer.passdies }}">
+    <wafer-properties>
+    {% for k,v in wafer.config.iteritems() %}
+      <parameter key="{{ k }}" value="{{ v }}" />
+    {% endfor %}
+    </wafer-properties>
+    <wafermaps>
+    {% for wafermap in wafer.wafermaps %}
+      <wafermap name="{{ wafermap.name }}">
+      {% for name,format in wafermap.formats.iteritems() %}
+        <formats>
+          <format name="{{ name }}" encoding="{{ format.encoding }}">
+            {{ format.wafermap }}
+          </format>
+        </formats>
+      {% endfor %}
+      </wafermap>
+    {% endfor %}
+    </wafermaps>
+  </wafer>
+  {% endfor %}
+</lot>"""
+
+
 def encode(lot):
   """Encode a lot to xml.
 
      First create the lot you want to encode
-     >>> w1 = Wafer(1, 100, [Wafermap("blaat", {"TH01": Format("base64", "aGVsbG8gd29ybGQ=")})])
-     >>> w2 = Wafer(2, 200, [Wafermap("blubber", {"TH01": Format("base64", "a3J1c3R5")})])
+     >>> w1 = Wafer(1, 100, [Wafermap("blaat", {"th01": Format("base64", "aGVsbG8gd29ybGQ=")})])
+     >>> w2 = Wafer(2, 200, [Wafermap("blubber", {"th01": Format("base64", "a3J1c3R5")})])
      >>> l = Lot("A12345", "201210600", 2, "IEPER", "IEPER", "MLX_BOGUS", [w1, w2], {'val1': 'blub'})
   
      Now encode the lot to xml    
@@ -167,11 +202,12 @@ def encode(lot):
      Read the expected format
      >>> with open('expected_lot.xml', 'r') as f:
      ...   expected = f.read()
-     ...   s == expected
-     True
+     ...   import difflib
+     ...   diff = difflib.unified_diff(expected.strip().splitlines(1), s.strip().splitlines(1))
+     ...   print ''.join(diff)
+     <BLANKLINE>
   """
-  t = open('lot.xml').read()
-  template = Template(t)
+  template = Template(lot_template)
   return template.render(lot=lot)
 
 def eachWafer(l, f):
