@@ -8,7 +8,7 @@ import subprocess
 import stomp
 import sys
 import uuid
-import requests
+import http as requests
 
 from ewafermap import *
 from tempfile import mkdtemp
@@ -55,7 +55,7 @@ def th01_reference_to_map_generator(references):
   """Generator that fetches the th01 wafermaps for a list containing the name and reference
 
      >>> [(name, wmap[:4]) for name, wmap in th01_reference_to_map_generator([('test', '716c6b31cc6f3be514269de58c4097da89abdcdc')])]
-     [('test', u'WMAP')]"""
+     [('test', 'WMAP')]"""
   for name,ref in references:
     r = requests.get(WMDS_WEBSERVICE + ref)
     if r.status_code > 300:
