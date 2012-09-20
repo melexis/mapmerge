@@ -35,8 +35,8 @@ def th01_wafermaps_generator(wafer):
   """Generator that selects all th01 wafermaps from a given wafername
 
      First create a wafer object containing a list of wafermaps.
-     >>> wm1 = Wafermap('wafermap1', {'th01': Format('raw','c3fe9bd4777d868cea2dd79ebfe569cc6bcbed02')})
-     >>> wm2 = Wafermap('wafermap2', {'th01': Format('raw','716c6b31cc6f3be514269de58c4097da89abdcdc'), 'amkor': 'blubber'})
+     >>> wm1 = Wafermap('wafermap1', {'th01': Format('c3fe9bd4777d868cea2dd79ebfe569cc6bcbed02', None)})
+     >>> wm2 = Wafermap('wafermap2', {'th01': Format('716c6b31cc6f3be514269de58c4097da89abdcdc', None), 'amkor': 'blubber'})
      >>> w = Wafer(1, 100, [wm1, wm2])
 
      Now we can iterator all th01 wafermaps for a wafer by calling the th01_wafermaps_generator
@@ -48,8 +48,8 @@ def th01_wafermaps_generator(wafer):
       logging.debug("Generating TH01 wafermaps for wafermap %s" % wafermap.name)
       if wafermap.formats.has_key('th01'):
           logging.debug('Found a TH01 key in the wafermap')
-          wkey = wafermap.formats['th01']
-          yield (wafermap.name, wkey.wafermap)
+          format = wafermap.formats['th01']
+          yield (wafermap.name, format.reference)
           
 
 def th01_reference_to_map_generator(references):
@@ -130,7 +130,7 @@ def mapmerge(lot, wafer):
     for filename in files:
       with open(filename, 'rb') as f:
         contents = f.read()
-        wafermap = Wafermap('Postprocessing', {'th01': Format('base64', base64.b64encode(contents))})
+        wafermap = Wafermap('Postprocessing', {'th01': Format(None, contents)})
         wafer.wafermaps.append(wafermap)
 
   finally:
@@ -150,9 +150,30 @@ class MessageListener:
     lot = decode(message)
     logging.debug("Received a lot %s" % lot)
 
-    # perform mapmerge on each wafer
     try:
+      # perform mapmerge on each wafer
       eachWafer(lot, mapmerge)
+      
+      def _push_postprocessing_wafermap_to_wmds(lot, wafer):
+        # filter all wafermaps that don't have a reference
+        wafermaps_to_upload = filter(
+            lambda wafermap:  wafermap.formats.has_key('th01') and wafermap.formats['th01'].reference == None, 
+            wafer.wafermaps)
+
+        
+        for wafermap in wafermaps_to_upload:
+          resp = requests.put(WMDS_WEBSERVICE, wafermap.formats['th01'].wafermap)
+          if resp.status_code < 300:
+            logger.debug('Uploaded wafermap %s-%d Postprocessing to the wmds: %s' % (lot.name, wafer.number, resp.text))
+            # the service returns the reference in the body of the put
+            wafermap.formats['th01'].reference = resp.text
+          else:
+            logger.warn('Unable to upload wafermap to the wmds:  %d - %s' % (resp.status_code, resp.text))
+            raise BaseException('Unable to push wafermap to the wmds: %d - %s' % (resp.status_code, resp.text))
+
+      # save the postprocessing wafermap to the wmds            
+      eachWafer(lot, _push_postprocessing_wafermap_to_wmds)
+
       logging.debug("Sending a lot %s" % lot)
       response = encode(lot)
       # send the result back

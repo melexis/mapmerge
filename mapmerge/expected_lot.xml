@@ -18,9 +18,7 @@
       <wafermap name="blaat">
       
         <formats>
-          <format name="th01" encoding="base64">
-            aGVsbG8gd29ybGQ=
-          </format>
+          <format name="th01">07c215caa72d9b24746c2f3f1944b31a1c402643</format>
         </formats>
       
       </wafermap>
@@ -37,9 +35,7 @@
       <wafermap name="blubber">
       
         <formats>
-          <format name="th01" encoding="base64">
-            a3J1c3R5
-          </format>
+          <format name="th01">07c215caa72d9b24746c2f3f1944b31a1c402643</format>
         </formats>
       
       </wafermap>

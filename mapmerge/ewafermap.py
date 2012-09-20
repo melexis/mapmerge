@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from base64 import b64decode
 from jinja2 import Template
 from xml.sax import handler, parseString
 
@@ -41,18 +40,12 @@ class Wafermap:
 
 class Format:
 
-    def __init__(self, encoding, wafermap):
-        self.encoding = encoding
+    def __init__(self, reference, wafermap):
+        self.reference = reference
         self.wafermap = wafermap
 
-    def decode(self):
-        if self.encoding == 'base64':
-          return b64decode(self.wafermap)
-        else:
-          raise "Invalid type"
-
     def __repr__(self):
-        return "Format {encoding: %s, wafermap: %s}" % (self.encoding, self.wafermap)
+        return "Format {reference: %s, wafermap: %s}" % (self.reference, self.wafermap)
 
 class LotHandler(handler.ContentHandler):
 
@@ -98,7 +91,6 @@ class LotHandler(handler.ContentHandler):
         elif name == 'format':
             self.inFormat = True
             self.formatName = attrs.get('name').lower()
-            self.formatEncoding = attrs.get('encoding')
             self.formatContent = ""
 
     def endElement(self, name):
@@ -120,13 +112,12 @@ class LotHandler(handler.ContentHandler):
         elif name == 'formats':
             self.inFormats = False
         elif name == 'format':
-            self.formats[self.formatName] = Format(self.formatEncoding, self.formatContent)
+            self.formats[self.formatName] = Format(self.formatContent, None)
             self.inFormat = False
             
     def characters(self, content):
         if self.inFormat == True:
             self.formatContent = self.formatContent + content.strip()
-
 
 def decode(body):
   """Parse an xml body to objects
@@ -146,8 +137,8 @@ def decode(body):
      u'test'
      >>> l.wafers[0].config
      {u'buildAt': u'20120302T11:53', u'origin': u'MapMerge', u'site': u'erfurt', u'processStep': u'pactech'}
-     >>> l.wafers[0].wafermaps[0].formats['th01'].decode()[:4]
-     'WMAP'
+     >>> l.wafers[0].wafermaps[0].formats['th01'].reference
+     u'07c215caa72d9b24746c2f3f1944b31a1c402643'
   """
   handler = LotHandler()
   parseString(body, handler)
@@ -175,9 +166,7 @@ lot_template="""<?xml version="1.0" encoding="UTF-8"?>
       <wafermap name="{{ wafermap.name }}">
       {% for name,format in wafermap.formats.iteritems() %}
         <formats>
-          <format name="{{ name }}" encoding="{{ format.encoding }}">
-            {{ format.wafermap }}
-          </format>
+          <format name="{{ name }}">{{format.reference}}</format>
         </formats>
       {% endfor %}
       </wafermap>
@@ -192,8 +181,8 @@ def encode(lot):
   """Encode a lot to xml.
 
      First create the lot you want to encode
-     >>> w1 = Wafer(1, 100, [Wafermap("blaat", {"th01": Format("base64", "aGVsbG8gd29ybGQ=")})])
-     >>> w2 = Wafer(2, 200, [Wafermap("blubber", {"th01": Format("base64", "a3J1c3R5")})])
+     >>> w1 = Wafer(1, 100, [Wafermap('blaat', {'th01': Format('07c215caa72d9b24746c2f3f1944b31a1c402643', None)})])
+     >>> w2 = Wafer(2, 200, [Wafermap('blubber', {'th01': Format('07c215caa72d9b24746c2f3f1944b31a1c402643', None)})])
      >>> l = Lot("A12345", "201210600", 2, "IEPER", "IEPER", "MLX_BOGUS", [w1, w2], {'val1': 'blub'})
   
      Now encode the lot to xml    
