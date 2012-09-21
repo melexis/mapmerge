@@ -58,10 +58,13 @@ def th01_reference_to_map_generator(references):
      >>> [(name, wmap[:4]) for name, wmap in th01_reference_to_map_generator([('test', '716c6b31cc6f3be514269de58c4097da89abdcdc')])]
      [('test', 'WMAP')]"""
   for name,ref in references:
-    r = requests.get(WMDS_WEBSERVICE + ref)
+    url = WMDS_WEBSERVICE + ref
+    logging.debug('Getting %s' % url) 
+    r = requests.get(url)
     if r.status_code > 300:
         raise BaseException("Wafermap with key %s was not found in the datastore" % ref)
     yield (name, r.text)
+
 
 class MapMergeException(BaseException):
 
@@ -94,6 +97,7 @@ def mapmerge(lot, wafer):
 
     try:
       logging.debug('Creating a subprocess for mapmerge')
+      logging.debug('Starting command %s' % ('%s lot=%s wafer=%d ProcessStep=%s noDB localFolder=%s DestinationDir=%s' % (MAPMERGE, lot.name, int(wafer.number), lot.config['processStep'], ind, outd)))
       # spawn a new subprocess for mapmerge
       child = subprocess.Popen([
         MAPMERGE,
@@ -105,16 +109,20 @@ def mapmerge(lot, wafer):
         "DestinationDir=%s" % outd
         ], 
         stdout=subprocess.PIPE, 
-        stderr=subprocess.PIPE)
+        stderr=subprocess.PIPE,
+        bufsize=200000)
 
-      # block until the command is completed
-      child.wait()
-
+      stdout = ""
+      stderr = ""
+ 
+      while child.returncode == None:
+        stdout = stdout + child.stdout.read()
+        stderr = stderr + child.stderr.read()
+        child.poll()
+      
       # trigger an exception when the returncode isn't 0
       if child.returncode != 0:
         logging.warning("Mapmerge returned with exist code %d" % child.returncode)
-        stdout = child.stdout.read()
-        stderr = child.stderr.read()
         raise MapMergeException(child.returncode, stdout, stderr)
 
     finally:
@@ -153,28 +161,30 @@ class MessageListener:
     try:
       # perform mapmerge on each wafer
       eachWafer(lot, mapmerge)
-      
+      logging.debug('Finished mapmerge for %s' % lot.name)
+ 
       def _push_postprocessing_wafermap_to_wmds(lot, wafer):
         # filter all wafermaps that don't have a reference
         wafermaps_to_upload = filter(
             lambda wafermap:  wafermap.formats.has_key('th01') and wafermap.formats['th01'].reference == None, 
             wafer.wafermaps)
 
-        
+        logging.debug('Number of wafermaps to upload:  %d' % len(wafermaps_to_upload))
+ 
         for wafermap in wafermaps_to_upload:
-          resp = requests.put(WMDS_WEBSERVICE, wafermap.formats['th01'].wafermap)
+          logging.debug('Starting the upload of %d bytes to %s' % (len(wafermap.formats['th01'].wafermap), WMDS_WEBSERVICE))
+          resp = requests.put(WMDS_WEBSERVICE, headers={'Content-Type': 'application/octet-stream'}, data=wafermap.formats['th01'].wafermap)
+          logging.debug('Got response %s' % resp)
           if resp.status_code < 300:
-            logger.debug('Uploaded wafermap %s-%d Postprocessing to the wmds: %s' % (lot.name, wafer.number, resp.text))
+            logging.debug('Uploaded wafermap %s-%d Postprocessing to the wmds: %s' % (lot.name, int(wafer.number), resp.text))
             # the service returns the reference in the body of the put
             wafermap.formats['th01'].reference = resp.text
           else:
-            logger.warn('Unable to upload wafermap to the wmds:  %d - %s' % (resp.status_code, resp.text))
+            logging.warn('Unable to upload wafermap to the wmds:  %d - %s' % (resp.status_code, resp.text))
             raise BaseException('Unable to push wafermap to the wmds: %d - %s' % (resp.status_code, resp.text))
 
       # save the postprocessing wafermap to the wmds            
       eachWafer(lot, _push_postprocessing_wafermap_to_wmds)
-
-      logging.debug("Sending a lot %s" % lot)
       response = encode(lot)
       # send the result back
       self.conn.send(response, destination='/topic/postprocessing.mapmerge.out')
