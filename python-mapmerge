@@ -2,6 +2,7 @@
 import sys
 
 sys.path.append('/usr/share/pyshared')
+sys.path.append('/usr/share/python-support/python-mapmerge')
 
 from mapmerge import listen
 from mapmerge.config import STOMP_HOSTNAME, STOMP_PORT
