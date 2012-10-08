@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import logging
+import logging.handlers
+
 STOMP_HOSTNAME='ewaf-test.colo.elex.be'
 STOMP_PORT=61613
 

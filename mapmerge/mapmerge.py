@@ -9,12 +9,14 @@ import subprocess
 import stomp
 import sys
 import uuid
+import http as requests
 import shutil
 
 from ewafermap import *
 from tempfile import mkdtemp
 from config import WMDS_WEBSERVICE
 from config import LOGHANDLER
+from config import LOGLEVEL
 
 MAPMERGE = '/usr/share/ink-tool/bin/inkless'
 
@@ -124,7 +126,7 @@ def mapmerge(lot, wafer):
       
       # trigger an exception when the returncode isn't 0
       if child.returncode != 0:
-        logger.warning("Mapmerge returned with exist code %d" % child.returncode)
+        logger.warning("Mapmerge returned with exit code %d" % child.returncode)
         raise MapMergeException(child.returncode, stdout, stderr)
 
     finally:
@@ -182,7 +184,7 @@ class MessageListener:
             # the service returns the reference in the body of the put
             wafermap.formats['th01'].reference = resp.text
           else:
-            logger.warn('Unable to upload wafermap to the wmds:  %d - %s' % (resp.status_code, resp.text))
+            logger.warning('Unable to upload wafermap to the wmds:  %d - %s' % (resp.status_code, resp.text))
             raise BaseException('Unable to push wafermap to the wmds: %d - %s' % (resp.status_code, resp.text))
 
       # save the postprocessing wafermap to the wmds            
@@ -225,5 +227,5 @@ def main():
 if __name__ == '__main__':
   logger = logging.getLogger('mapmerge')
   logger.setLevel(LOGLEVEL)
-  logger.addHandler(LOGHANDLER)  
+  logger.addHandler(LOGHANDLER)
   main()
