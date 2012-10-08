@@ -15,11 +15,11 @@ import shutil
 from ewafermap import *
 from tempfile import mkdtemp
 from config import WMDS_WEBSERVICE
-from config import LOGHANDLER
 from config import LOGLEVEL
 
 MAPMERGE = '/usr/share/ink-tool/bin/inkless'
 
+logger = logging.getLogger(__name__)
 
 def save_wafermap_formats_to_dir(wafermaps, d):
   """Save a wafermap in the given directory.
@@ -196,6 +196,7 @@ class MessageListener:
       self.conn.send(e.__repr__(), destination='/topic/exceptions.postprocessing')
     
 def listen(hostname, port):
+  logger.info('Starting to listen')
   conn = None
   try: 
     conn = stomp.Connection([(hostname, port)])
@@ -214,6 +215,9 @@ def usage():
   print("Usage:  %s <<hostname>> <<port>>" % sys.argv[0])
 
 def main():
+  logger.setLevel(logging.DEBUG)
+  logger.addHandler(logging.StreamHandler())
+
   if len(sys.argv) == 2 and sys.argv[1] == 'test':
     import doctest
     doctest.testmod()
@@ -225,7 +229,4 @@ def main():
     listen(hostname, int(port))
 
 if __name__ == '__main__':
-  logger = logging.getLogger('mapmerge')
-  logger.setLevel(LOGLEVEL)
-  logger.addHandler(LOGHANDLER)
   main()
