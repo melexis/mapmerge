@@ -3,30 +3,32 @@ from __future__ import with_statement
 
 import base64
 import logging
+import logging.handlers
 import os
 import subprocess
 import stomp
 import sys
 import uuid
-import http as requests
 import shutil
 
 from ewafermap import *
 from tempfile import mkdtemp
 from config import WMDS_WEBSERVICE
+from config import LOGHANDLER
 
 MAPMERGE = '/usr/share/ink-tool/bin/inkless'
+
 
 def save_wafermap_formats_to_dir(wafermaps, d):
   """Save a wafermap in the given directory.
 
      Wafermaps is a list of tuples containing the name of the wafermap and the wafermap
   """
-  logging.info("Saving the wafermaps to directory %s" % d)
+  logger.info("Saving the wafermaps to directory %s" % d)
   for name, wafermap in wafermaps:
     filename = d + '/' + uuid.uuid1().hex
     with open(filename, 'wb') as f:
-      logging.debug("Saving wafermap to file %s" % filename)
+      logger.debug("Saving wafermap to file %s" % filename)
       f.write(wafermap)
       f.flush()
       f.close()
@@ -43,11 +45,11 @@ def th01_wafermaps_generator(wafer):
      >>> [(name, ref) for name, ref in th01_wafermaps_generator(w)]
      [('wafermap1', 'c3fe9bd4777d868cea2dd79ebfe569cc6bcbed02'), ('wafermap2', '716c6b31cc6f3be514269de58c4097da89abdcdc')]
   """
-  logging.info('Creating a generator for all TH01 wafermaps in the wafer')
+  logger.info('Creating a generator for all TH01 wafermaps in the wafer')
   for wafermap in wafer.wafermaps:
-      logging.debug("Generating TH01 wafermaps for wafermap %s" % wafermap.name)
+      logger.debug("Generating TH01 wafermaps for wafermap %s" % wafermap.name)
       if wafermap.formats.has_key('th01'):
-          logging.debug('Found a TH01 key in the wafermap')
+          logger.debug('Found a TH01 key in the wafermap')
           format = wafermap.formats['th01']
           yield (wafermap.name, format.reference)
           
@@ -59,7 +61,7 @@ def th01_reference_to_map_generator(references):
      [('test', 'WMAP')]"""
   for name,ref in references:
     url = WMDS_WEBSERVICE + ref
-    logging.debug('Getting %s' % url) 
+    logger.debug('Getting %s' % url) 
     r = requests.get(url)
     if r.status_code > 300:
         raise BaseException("Wafermap with key %s was not found in the datastore" % ref)
@@ -85,7 +87,7 @@ def mapmerge(lot, wafer):
     ind = mkdtemp(suffix='input')
     outd = mkdtemp(suffix='output')
 
-    logging.debug("Created temporary directories %s for input and %s for output" % (ind, outd))
+    logger.debug("Created temporary directories %s for input and %s for output" % (ind, outd))
 
     # select all th0x wafermaps to save in the in directory
     wafermaps = th01_reference_to_map_generator(th01_wafermaps_generator(wafer))
@@ -96,8 +98,8 @@ def mapmerge(lot, wafer):
     child = None
 
     try:
-      logging.debug('Creating a subprocess for mapmerge')
-      logging.debug('Starting command %s' % ('%s lot=%s wafer=%d ProcessStep=%s noDB localFolder=%s DestinationDir=%s' % (MAPMERGE, lot.name, int(wafer.number), lot.config['processStep'], ind, outd)))
+      logger.debug('Creating a subprocess for mapmerge')
+      logger.debug('Starting command %s' % ('%s lot=%s wafer=%d ProcessStep=%s noDB localFolder=%s DestinationDir=%s' % (MAPMERGE, lot.name, int(wafer.number), lot.config['processStep'], ind, outd)))
       # spawn a new subprocess for mapmerge
       child = subprocess.Popen([
         MAPMERGE,
@@ -122,7 +124,7 @@ def mapmerge(lot, wafer):
       
       # trigger an exception when the returncode isn't 0
       if child.returncode != 0:
-        logging.warning("Mapmerge returned with exist code %d" % child.returncode)
+        logger.warning("Mapmerge returned with exist code %d" % child.returncode)
         raise MapMergeException(child.returncode, stdout, stderr)
 
     finally:
@@ -133,7 +135,7 @@ def mapmerge(lot, wafer):
     # check for generated wafermaps in the out directory
     files = [outd + '/' + f for f in os.listdir(outd)]
 
-    logging.debug("Found the following files in the output directory %s" % files)
+    logger.debug("Found the following files in the output directory %s" % files)
     
     for filename in files:
       with open(filename, 'rb') as f:
@@ -156,12 +158,12 @@ class MessageListener:
 
   def on_message(self, headers, message):
     lot = decode(message)
-    logging.debug("Received a lot %s" % lot)
+    logger.debug("Received a lot %s" % lot)
 
     try:
       # perform mapmerge on each wafer
       eachWafer(lot, mapmerge)
-      logging.debug('Finished mapmerge for %s' % lot.name)
+      logger.debug('Finished mapmerge for %s' % lot.name)
  
       def _push_postprocessing_wafermap_to_wmds(lot, wafer):
         # filter all wafermaps that don't have a reference
@@ -169,18 +171,18 @@ class MessageListener:
             lambda wafermap:  wafermap.formats.has_key('th01') and wafermap.formats['th01'].reference == None, 
             wafer.wafermaps)
 
-        logging.debug('Number of wafermaps to upload:  %d' % len(wafermaps_to_upload))
+        logger.debug('Number of wafermaps to upload:  %d' % len(wafermaps_to_upload))
  
         for wafermap in wafermaps_to_upload:
-          logging.debug('Starting the upload of %d bytes to %s' % (len(wafermap.formats['th01'].wafermap), WMDS_WEBSERVICE))
+          logger.debug('Starting the upload of %d bytes to %s' % (len(wafermap.formats['th01'].wafermap), WMDS_WEBSERVICE))
           resp = requests.put(WMDS_WEBSERVICE, headers={'Content-Type': 'application/octet-stream'}, data=wafermap.formats['th01'].wafermap)
-          logging.debug('Got response %s' % resp)
+          logger.debug('Got response %s' % resp)
           if resp.status_code < 300:
-            logging.debug('Uploaded wafermap %s-%d Postprocessing to the wmds: %s' % (lot.name, int(wafer.number), resp.text))
+            logger.debug('Uploaded wafermap %s-%d Postprocessing to the wmds: %s' % (lot.name, int(wafer.number), resp.text))
             # the service returns the reference in the body of the put
             wafermap.formats['th01'].reference = resp.text
           else:
-            logging.warn('Unable to upload wafermap to the wmds:  %d - %s' % (resp.status_code, resp.text))
+            logger.warn('Unable to upload wafermap to the wmds:  %d - %s' % (resp.status_code, resp.text))
             raise BaseException('Unable to push wafermap to the wmds: %d - %s' % (resp.status_code, resp.text))
 
       # save the postprocessing wafermap to the wmds            
@@ -217,9 +219,11 @@ def main():
     usage()
   else:
     [program, hostname, port] = sys.argv
-    logging.debug("Starting mapmerge for esb %s and port %d" % (hostname, int(port)))
+    logger.debug("Starting mapmerge for esb %s and port %d" % (hostname, int(port)))
     listen(hostname, int(port))
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG)
+  logger = logging.getLogger('mapmerge')
+  logger.setLevel(LOGLEVEL)
+  logger.addHandler(LOGHANDLER)  
   main()
