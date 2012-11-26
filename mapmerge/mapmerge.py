@@ -196,20 +196,23 @@ class MessageListener:
       self.conn.send(e.__repr__(), destination='/topic/exceptions.postprocessing')
     
 def listen(hostname, port):
+  import time
   logger.info('Starting to listen')
   conn = None
-  try: 
-    conn = stomp.Connection([(hostname, port)])
-    conn.set_listener('', MessageListener(conn))
-    conn.start()
-    conn.connect()
-    conn.subscribe(destination='/queue/postprocessing.mapmerge.erfurt.in', ack='auto')
-
-    import time
-    while True: time.sleep(1000)
-  finally: 
-    if conn != None:    
-      conn.disconnect()
+  while True:
+    try: 
+      conn = stomp.Connection([(hostname, port)])
+      conn.set_listener('', MessageListener(conn))
+      conn.start()
+      conn.connect()
+      conn.subscribe(destination='/queue/postprocessing.mapmerge.erfurt.in', ack='auto')
+      while True: time.sleep(1000)
+    except (stomp.exception.NotConnectedException, stomp.exception.ConnectFailedException):
+      time.sleep(1000)
+      pass
+    finally: 
+      if conn != None and conn.is_connected():    
+        conn.disconnect()
 
 def usage():
   print("Usage:  %s <<hostname>> <<port>>" % sys.argv[0])
