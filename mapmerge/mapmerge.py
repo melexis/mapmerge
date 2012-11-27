@@ -150,7 +150,7 @@ def mapmerge(lot, wafer):
     shutil.rmtree(outd, ignore_errors=True, onerror=None)
     
 
-class MessageListener:
+class MessageListener(stomp.listener.ConnectionListener):
 
   def __init__(self, conn):
     self.conn = conn
@@ -194,22 +194,29 @@ class MessageListener:
       self.conn.send(response, destination='/topic/postprocessing.mapmerge.out')
     except BaseException, e: 
       self.conn.send(e.__repr__(), destination='/topic/exceptions.postprocessing')
+
+  def on_disconnect(self):
+    logger.warn('Lost connection to stomp server')
     
 def listen(hostname, port):
   import time
   logger.info('Starting to listen')
   conn = None
   while True:
+    logger.debug('Trying to connect to stomp server')
     try: 
       conn = stomp.Connection([(hostname, port)])
       conn.set_listener('', MessageListener(conn))
       conn.start()
       conn.connect()
       conn.subscribe(destination='/queue/postprocessing.mapmerge.erfurt.in', ack='auto')
-      while True: time.sleep(1000)
+      time.sleep(1000)
+      while True and conn.is_connected(): time.sleep(1000)
     except (stomp.exception.NotConnectedException, stomp.exception.ConnectFailedException):
       time.sleep(1000)
       pass
+    except e:
+      logger.debug('Got exception %s' % e)
     finally: 
       if conn != None and conn.is_connected():    
         conn.disconnect()
