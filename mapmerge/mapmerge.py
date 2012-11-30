@@ -219,12 +219,13 @@ def listen(hostname, port):
       conn.start()
       conn.connect()
       conn.subscribe(destination='/queue/postprocessing.mapmerge.erfurt.in', ack='auto')
-      time.sleep(1000)
-      while True and conn.is_connected(): time.sleep(1000)
+      time.sleep(1)
+      while True and conn.is_connected(): 
+        time.sleep(1)
     except (stomp.exception.NotConnectedException, stomp.exception.ConnectFailedException):
-      time.sleep(1000)
+      time.sleep(1)
       pass
-    except e:
+    except BaseException, e:
       logger.debug('Got exception %s' % e)
     finally: 
       if conn != None and conn.is_connected():    

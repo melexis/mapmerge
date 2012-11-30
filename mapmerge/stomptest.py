@@ -15,4 +15,4 @@ conn.subscribe(destination='/queue/test', ack='auto')
 conn.send('ping', destination='/queue/test')
 
 import time
-time.sleep(100)
+time.sleep(1)

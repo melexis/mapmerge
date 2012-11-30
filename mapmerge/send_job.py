@@ -20,4 +20,4 @@ c.send(f, destination='/queue/postprocessing.mapmerge.erfurt.in')
 print 'sent'
 
 import time
-time.sleep(100)
+time.sleep(1)
