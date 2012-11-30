@@ -3,6 +3,8 @@
 import logging
 import logging.handlers
 
+logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
 STOMP_HOSTNAME='ewaf-test.colo.elex.be'
 STOMP_PORT=61613
 

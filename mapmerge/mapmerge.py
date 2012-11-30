@@ -11,6 +11,7 @@ import sys
 import uuid
 import http as requests
 import shutil
+import traceback
 
 from ewafermap import *
 from tempfile import mkdtemp
@@ -20,6 +21,11 @@ from config import LOGLEVEL
 MAPMERGE = '/usr/share/ink-tool/bin/inkless'
 
 logger = logging.getLogger(__name__)
+
+def format_stacktrace(e):
+  """Format an exception with the stacktrace"""
+  exc_type, exc_value, exc_traceback = sys.exc_info()
+  return "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
 def save_wafermap_formats_to_dir(wafermaps, d):
   """Save a wafermap in the given directory.
@@ -192,8 +198,11 @@ class MessageListener:
       response = encode(lot)
       # send the result back
       self.conn.send(response, destination='/topic/postprocessing.mapmerge.out')
-    except BaseException, e: 
-      self.conn.send(e.__repr__(), destination='/topic/exceptions.postprocessing')
+    except BaseException as e:
+      stacktrace = format_stacktrace(e)
+      msg = "Got exception while processing message %s:\t\n%s" % (message, stacktrace)
+      logger.warning(msg)
+      self.conn.send(msg, destination='/topic/exceptions.postprocessing')
     
 def listen(hostname, port):
   logger.info('Starting to listen')
