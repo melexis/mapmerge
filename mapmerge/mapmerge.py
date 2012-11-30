@@ -198,7 +198,7 @@ class MessageListener(stomp.listener.ConnectionListener):
       response = encode(lot)
       # send the result back
       self.conn.send(response, destination='/topic/postprocessing.mapmerge.out')
-    except BaseException as e:
+    except BaseException, e:
       stacktrace = format_stacktrace(e)
       msg = "Got exception while processing message %s:\t\n%s" % (message, stacktrace)
       logger.warning(msg)
