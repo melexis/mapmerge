@@ -7,7 +7,7 @@ sys.path.append('/usr/share/pyshared')
 sys.path.append('/usr/share/python-support/python-mapmerge')
 
 from mapmerge import listen
-from mapmerge.config import STOMP_HOSTNAME, STOMP_PORT, LOGLEVEL, LOGHANDLER
+from mapmerge.config import HOSTS, LOGLEVEL, LOGHANDLER
 
 root = logging.getLogger('')
 root.setLevel(LOGLEVEL)
@@ -16,4 +16,4 @@ root.addHandler(LOGHANDLER)
 logger = logging.getLogger(__name__)
 logger.info('Start listening for messages')
 
-listen(STOMP_HOSTNAME, STOMP_PORT)
+listen(HOSTS)

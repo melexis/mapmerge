@@ -207,14 +207,14 @@ class MessageListener(stomp.listener.ConnectionListener):
   def on_disconnect(self):
     logger.warn('Lost connection to stomp server')
     
-def listen(hostname, port):
+def listen(hosts):
   import time
   logger.info('Starting to listen')
   conn = None
   while True:
     logger.debug('Trying to connect to stomp server')
     try: 
-      conn = stomp.Connection([(hostname, port)])
+      conn = stomp.Connection(hosts)
       conn.set_listener('', MessageListener(conn))
       conn.start()
       conn.connect()

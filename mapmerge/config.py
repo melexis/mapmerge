@@ -4,8 +4,8 @@ import logging
 import logging.handlers
 
 
-STOMP_HOSTNAME='ewaf-test.colo.elex.be'
-STOMP_PORT=61613
+# hosts is a list of typles containing the hostname and ports of the ewaf stomp servers
+HOSTS = [("esb-a-test", 61601),("esb-b-test", 61601)]
 
 WMDS_WEBSERVICE = 'http://ewaf-test.colo.elex.be:8181/cxf/api/wafermap/'
 
